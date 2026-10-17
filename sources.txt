@@ -1,0 +1,28 @@
+# Everything build.sh downloads: file  sha256  url
+# Toolchains
+mips-xburst2-linux-toolchain-r6.0.0.tar.bz2 4e3359e32c2fb7d9e573ce84370220a66e3998bb911452d82267394fad4086e0 ftp://ingenic_public:BFdg2f9B12@ftp.ingenic.com.cn/Ingenic-MIPS-Toolchain/releases/ingenic-mips-toolchain-r6.0.0/mips-xburst2-linux-toolchain-r6.0.0.tar.bz2
+mips-gcc720-glibc229.tar.gz c0415a857c6b384820ec61b8a30c89e528585f3ef07d580fc856e80313c9d2e8 https://github.com/ballaswag/k1-discovery/releases/download/1.0.0/mips-gcc720-glibc229.tar.gz
+# Target sources
+Python-3.13.9.tar.xz ed5ef34cda36cfa2f3a340f07cac7e7814f91c7f3c411f6d3562323a866c5c66 https://www.python.org/ftp/python/3.13.9/Python-3.13.9.tar.xz
+zlib-1.3.1.tar.gz 9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23 https://zlib.net/fossils/zlib-1.3.1.tar.gz
+libffi-3.4.7.tar.gz 138607dee268bdecf374adf9144c00e839e38541f75f24a1fcf18b78fda48b2d https://github.com/libffi/libffi/releases/download/v3.4.7/libffi-3.4.7.tar.gz
+openssl-3.0.22.tar.gz 67ebca7e50d17383028045486653492195b83db95f8558709701bb47b5c1ef81 https://github.com/openssl/openssl/releases/download/openssl-3.0.22/openssl-3.0.22.tar.gz
+sqlite-autoconf-3540100.tar.gz 926ef8d3eab93fbf6e06011901273eec076b25594a4e1cdadd50c987f4f6d64e https://sqlite.org/2026/sqlite-autoconf-3540100.tar.gz
+bzip2-1.0.8.tar.gz ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269 https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+xz-5.8.4.tar.gz 0014c7886930454fe8bd4228665b51af55eeae560ea135c9c4cd33f55b2591d9 https://github.com/tukaani-project/xz/releases/download/v5.8.4/xz-5.8.4.tar.gz
+libsodium-1.0.20.tar.gz ebb65ef6ca439333c2bb41a0c1990587288da07f6c7fd07cb3a18cc18d30ce19 https://download.libsodium.org/libsodium/releases/libsodium-1.0.20.tar.gz
+jpegsrc.v9f.tar.gz 04705c110cb2469caa79fb71fba3d7bf834914706e9641a4589485c1f832565b https://www.ijg.org/files/jpegsrc.v9f.tar.gz
+greenlet-3.3.2.tar.gz 2eaf067fc6d886931c7962e8c6bede15d2f01965560f3359b27c80bde2d151f2 https://files.pythonhosted.org/packages/a3/51/1664f6b78fc6ebbd98019a1fd730e83fa78f2db7058f72b1463d3612b8db/greenlet-3.3.2.tar.gz
+cffi-2.0.0.tar.gz 44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529 https://files.pythonhosted.org/packages/eb/56/b1ba7935a17738ae8453301356628e8147c79dbb825bcbc73dc7401f9846/cffi-2.0.0.tar.gz
+markupsafe-3.0.4.tar.gz 2e9ad7dd851bf45fab9f75cbff4cb493fee9979e8d8c7c9c3ee119022518edd6 https://files.pythonhosted.org/packages/38/9b/e422a865e1d5d57d0e509b4e0bf1c1a70a7f6382c29a5aa428df994c8bc8/markupsafe-3.0.4.tar.gz
+numpy-2.2.2.tar.gz ed6906f61834d687738d25988ae117683705636936cc605be0bb208b23df4d8f https://files.pythonhosted.org/packages/ec/d0/c12ddfd3a02274be06ffc71f3efc6d0e457b0409c4481596881e748cb264/numpy-2.2.2.tar.gz
+jinja2-3.1.6-py3-none-any.whl 85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67 https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl
+pyserial-3.5-py2.py3-none-any.whl c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0 https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl
+pycparser-3.11-py3-none-any.whl 51d5a8ba2be0bbe440b99d2112604c95bbbc3c2748a64260186c541e1729cd80 https://files.pythonhosted.org/packages/90/11/0e6f11117525ff0eec40ebac3d313376f102df93ca44ad9e893ee85e4f89/pycparser-3.11-py3-none-any.whl
+dbus_fast-5.0.22.tar.gz 34dc67d7d21a12399828dd13e63b352750580beea54ea7c729e708f2d2905fef https://files.pythonhosted.org/packages/aa/db/b621610e50b1bc46ff63534d75239553c1bf33256de6096b58214fd9808a/dbus_fast-5.0.22.tar.gz
+# Build tools (run on the build machine)
+cython-3.1.4-py3-none-any.whl d194d95e4fa029a3f6c7d46bdd16d973808c7ea4797586911fdb67cb98b1a2c6 https://files.pythonhosted.org/packages/7c/24/f7351052cf9db771fe4f32fca47fd66e6d9b53d8613b17faf7d130a9d553/cython-3.1.4-py3-none-any.whl
+ninja-1.13.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl fb46acf6b93b8dd0322adc3a4945452a4e774b75b91293bafcc7b7f8e6517dfa https://files.pythonhosted.org/packages/ed/de/0e6edf44d6a04dabd0318a519125ed0415ce437ad5a1ec9b9be03d9048cf/ninja-1.13.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+# x86 reference packages for the tests
+numpy-2.2.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl e0c8854b09bc4de7b041148d8550d3bd712b5c21ff6a8ed308085f190235d7ff https://files.pythonhosted.org/packages/83/9c/96a9ab62274ffafb023f8ee08c88d3d31ee74ca58869f859db6845494fa6/numpy-2.2.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl c8d3b5532fc71b7a77c09192b4a5a200ea992702734a2e9279a37f2478236f26 https://files.pythonhosted.org/packages/98/df/0a1755e750013a2081e863e7cd37e0cdd02664372c754e5560099eb7aa44/cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
