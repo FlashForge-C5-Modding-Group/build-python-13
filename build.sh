@@ -448,7 +448,10 @@ chmod 755 "$P/cc/bin/gcc"
 # pip and setuptools build with sysconfig's CC/LDSHARED: point them at the
 # wrapper (and Entware's binutils) instead of the cross toolchain.
 for sc in "$P"/lib/python3.13/_sysconfigdata_*.py; do
-    sed -i -e "s|${T}gcc|$PREFIX/cc/bin/gcc|g" -e "s|${T}g++|$PREFIX/cc/bin/gcc|g" \
+    # gcc-ar/gcc-ranlib (the LTO build's) first, or the gcc rule turns them
+    # into cc/bin/gcc-ar, which doesn't exist.
+    sed -i -e "s|${T}gcc-ar|/opt/bin/ar|g" -e "s|${T}gcc-ranlib|/opt/bin/ranlib|g" \
+        -e "s|${T}gcc|$PREFIX/cc/bin/gcc|g" -e "s|${T}g++|$PREFIX/cc/bin/gcc|g" \
         -e "s|${T}|/opt/bin/|g" -e "s|$P|$PREFIX|g" "$sc"
 done
 # CA certificates for ssl (Moonraker, pip): pip's own certifi bundle.
