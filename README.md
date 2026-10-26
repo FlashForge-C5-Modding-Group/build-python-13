@@ -88,6 +88,36 @@ without any setup. For Kalico, put `cc/bin` first in Klippy's `PATH`. On a
 Creator 5 it builds a `c_helper.so` with identical output in about 50 s. C++
 extensions aren't covered.
 
+## Speed build (default)
+
+Klippy's own Python is the main CPU load on these SoCs, so CPython is built
+for speed (`PY_FAST=1`, the default; `PY_FAST=0` builds it as before):
+- **Static libpython** (`--disable-shared`): on 32-bit MIPS every call
+  inside a shared library goes through the GOT and `$t9`. Linked into the
+  executable, the interpreter calls directly. Extension modules (greenlet, cffi,
+  numpy, the stdlib's, pip-built ones) take the C API from `python3.13`, which
+  exports it; there is no `libpython3.13.so` in the bundle.
+- **PGO + LTO** (`--enable-optimizations --with-lto`): the instrumented build
+  runs CPython's `--pgo` test set under QEMU (`RUNSHAREDLIB` points at
+  `qemu-mipsel-static`), and the final build is optimized from that profile.
+  This makes the CPython step take much longer.
+- **`-march=xburst2`** (Creator 5 only): Ingenic's GCC 12 knows the core. It
+  is the same ISA as the default `mips32r2` (FP64, no MSA), with XBurst2
+  instruction scheduling. The K1's GCC 7.2 build is unchanged. The `cc/`
+  wrapper drops `-march`/`-mtune` from sysconfig's flags, since Entware's gcc
+  may not know them.
+
+Measure on the printer before switching: `printer/c5-bench.sh` times the
+installed `/usr/data/python-hf` against an unpacked new bundle (Klippy batch
+mode on bursts of short moves, plus plain-Python workloads like Klippy's). It
+installs and restarts nothing and refuses to run while printing.
+
+```sh
+mkdir -p /usr/data/python-hf-new
+gunzip -c python-hf-c5.tar.gz | tar -xf - -C /usr/data/python-hf-new --strip-components=1
+sh c5-bench.sh /usr/data/python-hf-new     # copy printer/c5-bench* next to it
+```
+
 ## How the K1 build works
 
 GCC 7.2 builds most of it. numpy 2.2.2 needs GCC 8.4 or newer, and greenlet

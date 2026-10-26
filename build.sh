@@ -7,6 +7,7 @@
 #   ./build.sh k1 --no-test    skip the QEMU tests
 #
 # Environment: WORK (cache/build dir, default ~/.cache/ingenic-hf-python),
+# PY_FAST=0 (shared libpython, no PGO/LTO, as before; see README.md),
 # KALICO_DIR (use this Kalico checkout), KALICO_REPO / KALICO_REF (what to
 # clone; use the printer's exact commit so c_helper.so matches its sources).
 # Output: out/python-hf-<target>.tar.gz (+ .sha256, BUILDINFO). See README.md.
@@ -22,7 +23,8 @@ OUTDIR=$REPO/out
 PREFIX=/usr/data/python-hf
 PYVER=3.13.9
 NUMPY_VER=2.2.2
-J=$(nproc)
+J=${J:-$(nproc)}
+PY_FAST=${PY_FAST:-1}
 
 log() { echo "== $*"; }
 die() { echo "ERROR: $*" >&2; exit 1; }
@@ -85,6 +87,8 @@ c5)
     SYSROOT=$R6/sysroot
     SYSLIBS="$SYSROOT/lib"
     NP_T=$T; NP_FLAGS=(); NP_LINK=(-ldl -lpthread)
+    # Same ISA (mips32r2, FP64), XBurst2 instruction scheduling
+    ARCH_FLAGS=(-march=xburst2)
     ;;
 k1)
     TC=$WORK/tc-glibc229
@@ -116,6 +120,7 @@ k1)
     "${NP_T}gcc" "--sysroot=$SYSROOT" -O2 -fPIC -c "$BASE/glibc229-compat.c" -o "$BASE/glibc229-compat.o"
     NP_FLAGS=("--sysroot=$SYSROOT")
     NP_LINK=("--sysroot=$SYSROOT" -static-libstdc++ -static-libgcc "$BASE/glibc229-compat.o" -ldl -lpthread)
+    ARCH_FLAGS=()
     ;;
 esac
 W=$BASE/work
@@ -224,25 +229,58 @@ ac_cv_buggy_getaddrinfo=no
 ac_cv_broken_sem_getvalue=no
 py_cv_module__uuid=n/a
 EOF
-    (cd "$W/python" && env "${CROSS_ENV[@]}" CONFIG_SITE="$W/python/config.site" \
+    PY_ENV=("${CROSS_ENV[@]}") PY_CONF=(--enable-shared)
+    if [ "$PY_FAST" = 1 ]; then
+        # Static libpython (no PIC call overhead in the interpreter), LTO, and
+        # PGO trained by running the instrumented build under QEMU.
+        QEMU=$(command -v qemu-mipsel-static || command -v qemu-mipsel || true)
+        if [ -z "$QEMU" ]; then
+            Q=$WORK/qemu
+            if [ ! -x "$Q/usr/bin/qemu-mipsel-static" ]; then
+                command -v apt-get >/dev/null || die "PGO needs qemu-user-static (qemu-mipsel-static), or PY_FAST=0"
+                mkdir -p "$Q" && (cd "$Q" && apt-get download qemu-user-static >/dev/null &&
+                    dpkg-deb -x qemu-user-static_*.deb . && rm -f ./*.deb)
+            fi
+            QEMU=$Q/usr/bin/qemu-mipsel-static
+        fi
+        PY_ENV+=(AR="${T}gcc-ar" RANLIB="${T}gcc-ranlib")
+        PY_CONF=(--disable-shared --enable-optimizations --with-lto)
+    fi
+    # The Makefile runs the profile task as a native ./python, so for a cross
+    # build: instrumented build, the task under QEMU (serially: QEMU can't
+    # start MIPS subprocesses), then the profile-guided build.
+    py_make() {
+        if [ "$PY_FAST" = 1 ]; then
+            make -j"$J" profile-gen-stamp &&
+                { "$QEMU" -cpu P5600 -L "$SYSROOT" -E LD_LIBRARY_PATH="$P/lib" \
+                    ./python -m test --pgo --timeout=900 >pgo-task.log 2>&1 || true; } &&
+                ls Python/*.gcda >/dev/null 2>&1 &&
+                make clean-retain-profile && touch profile-run-stamp
+        fi &&
+            make -j"$J"
+    }
+    (cd "$W/python" && env "${PY_ENV[@]}" CONFIG_SITE="$W/python/config.site" \
+        CFLAGS="${ARCH_FLAGS[*]}" \
         CPPFLAGS="-I$P/include" LDFLAGS="-L$P/lib -Wl,-rpath,$PREFIX/lib" \
-        LDSHARED="${T}gcc -shared -lpthread -ldl" \
+        LDSHARED="${T}gcc -shared -fPIC -lpthread -ldl" \
         LIBFFI_CFLAGS="-I$P/include" LIBFFI_LIBS="-L$P/lib -lffi" \
         ZLIB_CFLAGS="-I$P/include" ZLIB_LIBS="-L$P/lib -lz" \
         LIBSQLITE3_CFLAGS="-I$P/include" LIBSQLITE3_LIBS="-L$P/lib -lsqlite3" \
         BZIP2_CFLAGS="-I$P/include" BZIP2_LIBS="-L$P/lib -lbz2" \
         LIBLZMA_CFLAGS="-I$P/include" LIBLZMA_LIBS="-L$P/lib -llzma" \
         ./configure --host="$HOST" --build=x86_64-pc-linux-gnu --prefix="$PREFIX" \
-        --with-openssl="$P" --with-openssl-rpath=no --enable-shared --with-build-python="$HOSTPY" --without-ensurepip \
+        --with-openssl="$P" --with-openssl-rpath=no "${PY_CONF[@]}" --with-build-python="$HOSTPY" --without-ensurepip \
         --disable-test-modules >configure.log 2>&1 &&
-        make -j"$J" >build.log 2>&1 && make install DESTDIR="$STAGE" >install.log 2>&1) ||
+        py_make >build.log 2>&1 && make install DESTDIR="$STAGE" >install.log 2>&1) ||
         die "CPython build failed, see $W/python/*.log"
 fi
 
 PYINC=$P/include/python3.13
 SP=$P/lib/python3.13/site-packages
 EXT=$(ls "$P"/lib/python3.13/lib-dynload/_struct.*.so | sed 's#.*/_struct##')
-EXTFLAGS=(-O2 -shared -fPIC "-I$PYINC" "-L$P/lib" -lpython3.13 "-Wl,-rpath,$PREFIX/lib")
+EXTFLAGS=(-O2 "${ARCH_FLAGS[@]}" -shared -fPIC "-I$PYINC" "-L$P/lib" "-Wl,-rpath,$PREFIX/lib")
+# With a static libpython, extensions take the API from the python3.13 binary
+[ "$PY_FAST" = 1 ] || EXTFLAGS+=(-lpython3.13)
 
 # ------------------------------------------------------ 7. greenlet, cffi
 log greenlet
@@ -344,7 +382,7 @@ log "c_helper.so from Kalico ${KCOMMIT:0:8}"
 CH=$KALICO/klippy/chelper
 SOURCES=$(cd "$CH" && "$HOSTPY" -c 'import re;s=open("__init__.py").read();print(" ".join(re.findall(r"\"(\w+\.c)\"",s.split("SOURCE_FILES")[1].split("]")[0])))')
 rm -rf "$P/chelper" && mkdir -p "$P/chelper"
-(cd "$CH" && "${T}gcc" -Wall -O2 -shared -fPIC -flto -fwhole-program -fno-use-linker-plugin \
+(cd "$CH" && "${T}gcc" -Wall -O2 "${ARCH_FLAGS[@]}" -shared -fPIC -flto -fwhole-program -fno-use-linker-plugin \
     -o "$P/chelper/c_helper.so" $SOURCES -lm -lpthread)
 echo "$KCOMMIT" >"$P/chelper/kalico-commit"
 
@@ -382,7 +420,8 @@ link=1 shared=0
 for a; do
     shift
     case $a in
-        -march=native|-mtune=native) continue ;;
+        # sysconfig's CFLAGS carry the build's -march; Entware's gcc may not know it
+        -march=*|-mtune=*) continue ;;
         -c|-S|-E|-M|-MM) link=0 ;;
         -shared) shared=1 ;;
     esac
@@ -438,7 +477,7 @@ tar -czf "$OUTDIR/$BUNDLE" -C "$STAGE/usr/data" python-hf
 (cd "$OUTDIR" && sha256sum "$BUNDLE" >"$BUNDLE.sha256")
 cat >"$OUTDIR/BUILDINFO-$TARGET" <<EOF
 target: $TARGET
-python: $PYVER (prefix $PREFIX)
+python: $PYVER (prefix $PREFIX)$([ "$PY_FAST" = 1 ] && echo ", static libpython, PGO, LTO") ${ARCH_FLAGS[*]}
 numpy: $NUMPY_VER, greenlet 3.3.2, cffi 2.0.0
 kalico: $KALICO_REPO $KCOMMIT
 toolchain: $("${T}gcc" --version | head -1)

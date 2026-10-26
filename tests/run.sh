@@ -31,7 +31,10 @@ rm -rf "$QROOT" && mkdir -p "$QROOT/usr/data"
 cp -a "$SYSROOT"/. "$QROOT"/
 tar -xzf "$BUNDLE" -C "$QROOT/usr/data"
 B=$QROOT/usr/data/python-hf
-RUN=("$QEMU" -cpu P5600 -L "$QROOT" "$B/bin/python3.13")
+# Under QEMU, glibc's check that an RPATH directory exists misses the -L
+# prefix, so once the first library isn't found there it drops the bundle's
+# lib/ (a static python3.13 looks there for libc first). Give it the host path.
+RUN=("$QEMU" -cpu P5600 -L "$QROOT" -E LD_LIBRARY_PATH="$B/lib" "$B/bin/python3.13")
 
 "${RUN[@]}" -c 'import sys,zlib,ctypes,ssl,hashlib,sqlite3,bz2,lzma,ensurepip,greenlet,cffi,jinja2,markupsafe,serial,numpy,_cffi_backend; ctypes.CDLL("libsodium.so.26"); import multiprocessing; lk = multiprocessing.Lock(); lk.acquire(); lk.release(); print("imports ok:", sys.version.split()[0], ssl.OPENSSL_VERSION, "sqlite", sqlite3.sqlite_version, "greenlet", greenlet.__version__, "cffi", cffi.__version__, "numpy", numpy.__version__)' ||
     fail "imports"
