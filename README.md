@@ -88,6 +88,26 @@ without any setup. For Kalico, put `cc/bin` first in Klippy's `PATH`. On a
 Creator 5 it builds a `c_helper.so` with identical output in about 50 s. C++
 extensions aren't covered.
 
+
+## Prebuilt wheels for Moonraker
+
+Building Pillow on the printer can crash its `ld` or `as` (bus error,
+illegal instruction, segfault, different each run), which stops the
+OpenCreator install. `wheels.sh` cross-builds Moonraker's two C-extension
+packages for a released bundle instead:
+
+```sh
+./wheels.sh python-hf-c5-release.zip
+```
+
+It runs a host Python of the bundle's exact version with the bundle's
+sysconfig, compiles with the r6 toolchain (`-march=xburst2`) against the
+bundle's zlib and libjpeg, and checks every extension is hard-float with the
+bundle's ABI suffix. Output: `out/wheels-<python version>/` with
+`pillow-*-cp313-cp313-linux_mips.whl`, `streaming_form_data-*.whl` and
+`SHA256SUMS`. `PILLOW_VER` and `SFD_VER` pick other versions; the defaults
+are the newest Moonraker allows. The OpenCreator installer ships them in
+`payload-template/soc/wheels/` and points pip there with `--find-links`.
 ## Speed build (default)
 
 Klippy's own Python is the main CPU load on these SoCs, so CPython is built
